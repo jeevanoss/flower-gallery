@@ -5,7 +5,6 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "flower-db"
-
 database_id = "33bf15b0-1cb4-4cf7-b576-5406816d72e0"
 
 [[r2_buckets]]
@@ -13,5 +12,4 @@ binding = "R2_BUCKET"
 bucket_name = "flower-images"
 
 [vars]
-GEMINI_KEY = ""
 R2_PUBLIC_URL = "https://pub-32c87a2136554a5eba8f2f4349055952.r2.dev"
