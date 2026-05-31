@@ -483,7 +483,7 @@ submitBtn.addEventListener("click", async () => {
   try {
     setProgress(40, "Saving to database…");
 
-    const res  = await fetch("/api/upload", { method: "POST", body: formData });
+    const res  = await fetch("/api/upload", { method: "POST", body: formData, credentials: "same-origin" });
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.error || "Upload failed");
