@@ -114,13 +114,11 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
     console.error("AI tagging failed:", e.message);
   }
 }
-
 function bufferToBase64(buffer) {
-  const bytes  = new Uint8Array(buffer);
-  let binary   = "";
-  const chunk  = 8192;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
 }
