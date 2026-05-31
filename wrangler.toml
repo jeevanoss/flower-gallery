@@ -5,6 +5,7 @@ pages_build_output_dir = "public"
 [[d1_databases]]
 binding = "DB"
 database_name = "flower-db"
+
 database_id = "33bf15b0-1cb4-4cf7-b576-5406816d72e0"
 
 [[r2_buckets]]
