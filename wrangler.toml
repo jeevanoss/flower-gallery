@@ -1,0 +1,16 @@
+name = "flower-gallery"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "flower-db"
+database_id = "YOUR-D1-ID-HERE"
+
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "flower-images"
+
+[vars]
+GEMINI_KEY = "YOUR-GEMINI-API-KEY-HERE"
+R2_PUBLIC_URL = "https://pub-YOURHASH.r2.dev"

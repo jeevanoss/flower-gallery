@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Flower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green:    #2d6a4f;
+    --green-lt: #52b788;
+    --green-dk: #1b4332;
+    --cream:    #faf8f3;
+    --card:     #ffffff;
+    --ink:      #1a1a1a;
+    --muted:    #6b7280;
+    --border:   #e8e4dc;
+    --radius:   14px;
+    --error:    #e63946;
+    --success:  #2d6a4f;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--green);
+    padding: 20px 20px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.25); }
+
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #fff;
+  }
+  .header-title em { font-style: italic; color: var(--green-lt); }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1;
+    padding: 24px 16px 48px;
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── IMAGE PICKER ── */
+  .pick-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    text-align: center;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .2s;
+    margin-bottom: 20px;
+    position: relative;
+  }
+
+  .pick-zone:hover, .pick-zone.drag-over {
+    border-color: var(--green-lt);
+  }
+
+  .pick-placeholder {
+    padding: 44px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pick-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--green-lt);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .pick-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .pick-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .pick-preview {
+    display: none;
+    position: relative;
+  }
+
+  .pick-preview img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .pick-change {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+
+  #fileInput { display: none; }
+
+  /* ── FORM ── */
+  .form-group { margin-bottom: 16px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="date"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  input:focus {
+    border-color: var(--green-lt);
+    box-shadow: 0 0 0 3px rgba(82,183,136,0.15);
+  }
+
+  input::placeholder { color: #b5b0a8; }
+
+  /* ── AI TAG HINT ── */
+  .ai-hint {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: #eef7f1;
+    border: 1px solid #c8e6d4;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+  }
+
+  .ai-hint-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  .ai-hint-text { font-size: 13px; color: var(--success); line-height: 1.5; }
+  .ai-hint-text strong { font-weight: 500; }
+
+  /* ── SUBMIT ── */
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .submit-btn:hover:not(:disabled) { background: var(--green-dk); transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  /* ── PROGRESS ── */
+  .progress-wrap {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .progress-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--green-lt);
+    border-radius: 3px;
+    width: 0%;
+    transition: width .3s ease;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 999;
+    transition: transform .3s ease;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    text-align: center;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--green); }
+  .toast.error   { background: var(--error); }
+
+  /* ── RECENT UPLOADS ── */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    margin: 28px 0 14px;
+    color: var(--ink);
+  }
+
+  .recent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .recent-thumb {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .recent-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .recent-thumb-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    font-size: 10px;
+    padding: 4px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .no-recent {
+    grid-column: 1/-1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 20px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="flower.html" class="back-btn" aria-label="Back to gallery">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <div class="header-title">Add a <em>Flower</em></div>
+</header>
+
+<main>
+
+  <!-- Image picker -->
+  <div class="pick-zone" id="pickZone">
+    <input type="file" id="fileInput" accept="image/*" capture="environment">
+
+    <div class="pick-placeholder" id="pickPlaceholder">
+      <div class="pick-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <div class="pick-label">Tap to take photo or choose file</div>
+      <div class="pick-sub">JPEG, PNG · max 10MB</div>
+    </div>
+
+    <div class="pick-preview" id="pickPreview">
+      <img id="previewImg" src="" alt="Preview">
+      <button class="pick-change" id="changeBtn">Change photo</button>
+    </div>
+  </div>
+
+  <!-- AI hint -->
+  <div class="ai-hint">
+    <div class="ai-hint-icon">🤖</div>
+    <div class="ai-hint-text">
+      <strong>AI auto-tagging is on.</strong> After upload, Gemini will identify the flower species and add tags automatically. You can still set a name manually.
+    </div>
+  </div>
+
+  <!-- Form fields -->
+  <div class="form-group">
+    <label for="nameInput">Flower name <span style="color:var(--muted);font-weight:400;text-transform:none">(optional — AI will fill this)</span></label>
+    <input type="text" id="nameInput" placeholder="e.g. Hibiscus, Sunflower…">
+  </div>
+
+  <div class="form-group">
+    <label for="locationInput">Location *</label>
+    <input type="text" id="locationInput" placeholder="e.g. My Village, Kozhikode garden…" required>
+  </div>
+
+  <div class="form-group">
+    <label for="dateInput">Date *</label>
+    <input type="date" id="dateInput" required>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">
+      <span id="progressLabel">Uploading…</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <!-- Submit -->
+  <button class="submit-btn" id="submitBtn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+    Upload Flower
+  </button>
+
+  <!-- Recent uploads -->
+  <div class="section-title">Recently added</div>
+  <div class="recent-grid" id="recentGrid">
+    <div class="no-recent">Loading…</div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const pickZone    = document.getElementById("pickZone");
+const fileInput   = document.getElementById("fileInput");
+const placeholder = document.getElementById("pickPlaceholder");
+const previewWrap = document.getElementById("pickPreview");
+const previewImg  = document.getElementById("previewImg");
+const changeBtn   = document.getElementById("changeBtn");
+const nameInput   = document.getElementById("nameInput");
+const locInput    = document.getElementById("locationInput");
+const dateInput   = document.getElementById("dateInput");
+const submitBtn   = document.getElementById("submitBtn");
+const progressWrap= document.getElementById("progressWrap");
+const progressFill= document.getElementById("progressFill");
+const progressLbl = document.getElementById("progressLabel");
+const progressPct = document.getElementById("progressPct");
+const recentGrid  = document.getElementById("recentGrid");
+const toast       = document.getElementById("toast");
+
+// Set today's date
+dateInput.value = new Date().toISOString().split("T")[0];
+
+let selectedFile = null;
+
+// ── Image selection ───────────────────────────────────────────────────────────
+pickZone.addEventListener("click", (e) => {
+  if (e.target === changeBtn) return;
+  fileInput.click();
+});
+
+changeBtn.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    showToast("Image too large (max 10MB)", "error");
+    return;
+  }
+  selectedFile = file;
+  const url = URL.createObjectURL(file);
+  previewImg.src = url;
+  placeholder.style.display = "none";
+  previewWrap.style.display = "block";
+});
+
+// Drag and drop
+pickZone.addEventListener("dragover", (e) => { e.preventDefault(); pickZone.classList.add("drag-over"); });
+pickZone.addEventListener("dragleave", () => pickZone.classList.remove("drag-over"));
+pickZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  pickZone.classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith("image/")) {
+    fileInput.files = e.dataTransfer.files;
+    fileInput.dispatchEvent(new Event("change"));
+  }
+});
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+submitBtn.addEventListener("click", async () => {
+  if (!selectedFile) { showToast("Please select a photo first", "error"); return; }
+  if (!locInput.value.trim()) { showToast("Please enter a location", "error"); locInput.focus(); return; }
+  if (!dateInput.value) { showToast("Please enter a date", "error"); dateInput.focus(); return; }
+
+  submitBtn.disabled = true;
+  progressWrap.style.display = "block";
+  setProgress(10, "Uploading image…");
+
+  const formData = new FormData();
+  formData.append("image",    selectedFile);
+  formData.append("name",     nameInput.value.trim() || "Unknown");
+  formData.append("location", locInput.value.trim());
+  formData.append("date",     dateInput.value);
+
+  try {
+    setProgress(40, "Saving to database…");
+
+    const res  = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+
+    setProgress(100, "Done!");
+    showToast("Flower uploaded! AI tagging in progress…", "success");
+
+    setTimeout(() => {
+      // Reset form
+      selectedFile = null;
+      fileInput.value = "";
+      previewImg.src = "";
+      placeholder.style.display = "flex";
+      previewWrap.style.display = "none";
+      nameInput.value = "";
+      locInput.value  = "";
+      dateInput.value = new Date().toISOString().split("T")[0];
+      submitBtn.disabled = false;
+      progressWrap.style.display = "none";
+      progressFill.style.width = "0%";
+      loadRecent();
+    }, 1200);
+
+  } catch (err) {
+    showToast(err.message || "Upload failed", "error");
+    submitBtn.disabled = false;
+    progressWrap.style.display = "none";
+  }
+});
+
+function setProgress(pct, label) {
+  progressFill.style.width = pct + "%";
+  progressLbl.textContent  = label;
+  progressPct.textContent  = pct + "%";
+}
+
+// ── Recent uploads ────────────────────────────────────────────────────────────
+async function loadRecent() {
+  try {
+    const res  = await fetch("/api/flowers");
+    const data = await res.json();
+    const recent = data.slice(0, 6);
+
+    if (recent.length === 0) {
+      recentGrid.innerHTML = `<div class="no-recent">No flowers yet. Upload your first one!</div>`;
+      return;
+    }
+
+    recentGrid.innerHTML = recent.map(f => `
+      <div class="recent-thumb">
+        <img src="${f.image_url}" alt="${f.name}" loading="lazy">
+        <div class="recent-thumb-name">${f.name}</div>
+      </div>
+    `).join("");
+  } catch {
+    recentGrid.innerHTML = `<div class="no-recent">Could not load recent flowers.</div>`;
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = "") {
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.className   = `toast ${type} show`;
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+loadRecent();
+</script>
+</body>
+</html>

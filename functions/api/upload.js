@@ -1,0 +1,129 @@
+// functions/api/upload.js
+// POST /api/upload  (multipart/form-data)
+//   fields: image (File), name, location, date
+
+export async function onRequestPost({ request, env, ctx }) {
+  const uid = request.headers.get("cf-access-authenticated-user-email");
+  if (!uid) {
+    return Response.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return Response.json({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  const file     = formData.get("image");
+  const name     = (formData.get("name")     || "Unknown").trim();
+  const location = (formData.get("location") || "Unknown").trim();
+  const date     = formData.get("date")      || new Date().toISOString().split("T")[0];
+
+  if (!file || typeof file === "string") {
+    return Response.json({ error: "No image provided" }, { status: 400 });
+  }
+
+  const id  = crypto.randomUUID();
+  const ext = file.type === "image/png" ? "png" : "jpg";
+  const key = `flowers/${id}.${ext}`;
+
+  // Upload to R2
+  const arrayBuffer = await file.arrayBuffer();
+  await env.R2_BUCKET.put(key, arrayBuffer, {
+    httpMetadata: { contentType: file.type || "image/jpeg" }
+  });
+
+  const imageUrl = `${env.R2_PUBLIC_URL}/${key}`;
+
+  // Save to D1
+  await env.DB.prepare(
+    `INSERT INTO flowers (id, name, location, date, image_url, user_id)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(id, name, location, date, imageUrl, uid).run();
+
+  // Trigger AI tagging in background (non-blocking)
+  ctx.waitUntil(tagFlower(id, imageUrl, arrayBuffer, file.type, env));
+
+  return Response.json({
+    id,
+    imageUrl,
+    name,
+    location,
+    date,
+    message: "Uploaded! AI tagging in progress..."
+  }, {
+    headers: { "Access-Control-Allow-Origin": "*" }
+  });
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    }
+  });
+}
+
+// ── AI tagging via Gemini 2.5 Flash-Lite ─────────────────────────────────────
+async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
+  try {
+    const base64 = bufferToBase64(arrayBuffer);
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${env.GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: `You are a botanist. Identify this flower and respond ONLY with valid JSON, no markdown, no explanation:
+{"name":"Common name","species":"Latin name","category":"lowercase-single-word","tags":["tag1","tag2","tag3"]}`
+              },
+              {
+                inline_data: {
+                  mime_type: mimeType || "image/jpeg",
+                  data: base64
+                }
+              }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 200, temperature: 0.1 }
+        })
+      }
+    );
+
+    if (!res.ok) return;
+
+    const data   = await res.json();
+    const text   = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const clean  = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+
+    await env.DB.prepare(
+      `UPDATE flowers SET name=?, species=?, category=?, tags=? WHERE id=?`
+    ).bind(
+      parsed.name     || "Unknown flower",
+      parsed.species  || "",
+      parsed.category || parsed.tags?.[0] || "",
+      JSON.stringify(parsed.tags || []),
+      id
+    ).run();
+  } catch (e) {
+    console.error("AI tagging failed:", e.message);
+  }
+}
+
+function bufferToBase64(buffer) {
+  const bytes  = new Uint8Array(buffer);
+  let binary   = "";
+  const chunk  = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
