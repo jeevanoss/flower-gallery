@@ -26,10 +26,12 @@ export async function onRequestPost({ request, env, ctx }) {
   const key = `flowers/${id}.${ext}`;
 
   // Upload to R2
+  /*
   const arrayBuffer = await file.arrayBuffer();
   await env.R2_BUCKET.put(key, arrayBuffer, {
     httpMetadata: { contentType: file.type || "image/jpeg" }
   });
+  */
 
   const imageUrl = `${env.R2_PUBLIC_URL}/${key}`;
 
@@ -40,7 +42,8 @@ export async function onRequestPost({ request, env, ctx }) {
   ).bind(id, name, location, date, imageUrl, uid).run();
 
   // Trigger AI tagging in background (non-blocking)
-  ctx.waitUntil(tagFlower(id, imageUrl, arrayBuffer, file.type, env));
+  //ctx.waitUntil(tagFlower(id, imageUrl, arrayBuffer, file.type, env));
+  ctx.waitUntil(tagFlower(id, imageUrl, null, file.type, env));
 
   return Response.json({
     id,
@@ -67,8 +70,6 @@ export async function onRequestOptions() {
 // ── AI tagging via Gemini 2.5 Flash-Lite ─────────────────────────────────────
 async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
   try {
-    const base64 = bufferToBase64(arrayBuffer);
-
     const body = {
       contents: [{
         parts: [
@@ -77,10 +78,7 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
 {"name":"Common name","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}`
           },
           {
-            inline_data: {
-              mime_type: mimeType || "image/jpeg",
-              data: base64
-            }
+            image_url: { url: imageUrl }
           }
         ]
       }],
@@ -97,12 +95,9 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
 
     const raw = await res.text();
     console.log("Gemini status:", res.status);
-    console.log("Gemini response:", raw);
+    console.log("Gemini raw:", raw.slice(0, 500));
 
-    if (!res.ok) {
-      console.error("Gemini error:", raw);
-      return;
-    }
+    if (!res.ok) return;
 
     const data   = JSON.parse(raw);
     const text   = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -119,7 +114,7 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
       id
     ).run();
 
-    console.log("Tagged successfully:", parsed.name);
+    console.log("Tagged:", parsed.name);
   } catch (e) {
     console.error("AI tagging failed:", e.message);
   }
