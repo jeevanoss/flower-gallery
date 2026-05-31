@@ -69,34 +69,42 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
   try {
     const base64 = bufferToBase64(arrayBuffer);
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${env.GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                text: `You are a botanist. Identify this flower and respond ONLY with valid JSON, no markdown, no explanation:
-{"name":"Common name","species":"Latin name","category":"lowercase-single-word","tags":["tag1","tag2","tag3"]}`
-              },
-              {
-                inline_data: {
-                  mime_type: mimeType || "image/jpeg",
-                  data: base64
-                }
-              }
-            ]
-          }],
-          generationConfig: { maxOutputTokens: 200, temperature: 0.1 }
-        })
-      }
-    );
+    const body = {
+      contents: [{
+        parts: [
+          {
+            text: `Identify this flower. Reply ONLY with this exact JSON, no markdown:
+{"name":"Common name","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}`
+          },
+          {
+            inline_data: {
+              mime_type: mimeType || "image/jpeg",
+              data: base64
+            }
+          }
+        ]
+      }],
+      generationConfig: { maxOutputTokens: 200, temperature: 0.1 }
+    };
 
-    if (!res.ok) return;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${env.GEMINI_KEY}`;
 
-    const data   = await res.json();
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const raw = await res.text();
+    console.log("Gemini status:", res.status);
+    console.log("Gemini response:", raw);
+
+    if (!res.ok) {
+      console.error("Gemini error:", raw);
+      return;
+    }
+
+    const data   = JSON.parse(raw);
     const text   = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const clean  = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
@@ -110,6 +118,8 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
       JSON.stringify(parsed.tags || []),
       id
     ).run();
+
+    console.log("Tagged successfully:", parsed.name);
   } catch (e) {
     console.error("AI tagging failed:", e.message);
   }
