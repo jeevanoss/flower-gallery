@@ -87,7 +87,7 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
       generationConfig: { maxOutputTokens: 200, temperature: 0.1 }
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent?key=${env.GEMINI_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${env.GEMINI_KEY}`;
 
     const res = await fetch(url, {
       method: "POST",
