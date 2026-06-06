@@ -66,10 +66,13 @@ export async function onRequestOptions() {
 
 // ── AI tagging via Gemini 2.5 Flash-Lite ─────────────────────────────────────
 async function tagFlower(id, imageUrl, env) {
+  console.log("tagFlower started for:", id, imageUrl);
   try {
-    // Fetch image from R2 public URL
+    console.log("Fetching image from R2...");
     const imgRes = await fetch(imageUrl);
+    console.log("Image fetch status:", imgRes.status);
     const buffer = await imgRes.arrayBuffer();
+    console.log("Buffer size:", buffer.byteLength);
     const bytes  = new Uint8Array(buffer);
     let binary   = "";
     for (let i = 0; i < bytes.length; i++) {
