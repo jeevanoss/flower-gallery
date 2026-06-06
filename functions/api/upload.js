@@ -89,7 +89,7 @@ async function tagFlower(id, imageUrl, env) {
       contents: [{
         parts: [
           { text: `Identify this flower. Reply ONLY with this exact JSON, no markdown:
-{"name":"Common name","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}` },
+{"name":"Malayalam name if known, else English common name (Latin name in brackets)","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}` },  
           { inline_data: { mime_type: "image/jpeg", data: base64 } }
         ]
       }],
