@@ -26,12 +26,10 @@ export async function onRequestPost({ request, env, ctx }) {
   const key = `flowers/${id}.${ext}`;
 
   // Upload to R2
-  /*
   const arrayBuffer = await file.arrayBuffer();
   await env.R2_BUCKET.put(key, arrayBuffer, {
     httpMetadata: { contentType: file.type || "image/jpeg" }
   });
-  */
 
   const imageUrl = `${env.R2_PUBLIC_URL}/${key}`;
 
