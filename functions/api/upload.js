@@ -42,8 +42,7 @@ export async function onRequestPost({ request, env, ctx }) {
   ).bind(id, name, location, date, imageUrl, uid).run();
 
   // Trigger AI tagging in background (non-blocking)
-  //ctx.waitUntil(tagFlower(id, imageUrl, arrayBuffer, file.type, env));
-  ctx.waitUntil(tagFlower(id, imageUrl, null, file.type, env));
+  ctx.waitUntil(tagFlower(id, imageUrl, env));
 
   return Response.json({
     id,
@@ -68,34 +67,37 @@ export async function onRequestOptions() {
 }
 
 // ── AI tagging via Gemini 2.5 Flash-Lite ─────────────────────────────────────
-async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
+async function tagFlower(id, imageUrl, env) {
   try {
+    // Fetch image from R2 public URL
+    const imgRes = await fetch(imageUrl);
+    const buffer = await imgRes.arrayBuffer();
+    const bytes  = new Uint8Array(buffer);
+    let binary   = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+
     const body = {
       contents: [{
         parts: [
-          {
-            text: `Identify this flower. Reply ONLY with this exact JSON, no markdown:
-{"name":"Common name","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}`
-          },
-          {
-            image_url: { url: imageUrl }
-          }
+          { text: `Identify this flower. Reply ONLY with this exact JSON, no markdown:
+{"name":"Common name","species":"Latin name","category":"single-word","tags":["tag1","tag2","tag3"]}` },
+          { inline_data: { mime_type: "image/jpeg", data: base64 } }
         ]
       }],
       generationConfig: { maxOutputTokens: 200, temperature: 0.1 }
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${env.GEMINI_KEY}`;
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${env.GEMINI_KEY}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    );
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    const raw = await res.text();
+    const raw  = await res.text();
     console.log("Gemini status:", res.status);
-    console.log("Gemini raw:", raw.slice(0, 500));
+    console.log("Gemini response:", raw.slice(0, 300));
 
     if (!res.ok) return;
 
@@ -114,16 +116,8 @@ async function tagFlower(id, imageUrl, arrayBuffer, mimeType, env) {
       id
     ).run();
 
-    console.log("Tagged:", parsed.name);
+    console.log("Tagged successfully:", parsed.name);
   } catch (e) {
     console.error("AI tagging failed:", e.message);
   }
-}
-function bufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
 }
