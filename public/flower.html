@@ -483,7 +483,7 @@ function render() {
     card.innerHTML = `
       <div class="card-img-wrap">
         <a href="${f.image_url}" class="img-link"
-          data-sub-html="<h4>${f.name}</h4><p>${f.species || ""}</p><p>📍 ${f.location} · 📅 ${f.date}</p>">
+          data-sub-html="<h4>${f.name}</h4><p>${f.species || ""}</p><p>📍 ${f.location} · 📅 ${formatDate(f.date)}</p>">
           <img src="${f.image_url}" alt="${f.name}" loading="lazy">
         </a>
         <button class="fav-btn ${f.is_fav ? "saved" : ""}" data-id="${f.id}" aria-label="Toggle favorite">
@@ -517,7 +517,11 @@ function render() {
     subHtmlSelectorRelative: true
   });
 }
-
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+}
 // ── Favorite toggle ───────────────────────────────────────────────────────────
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest(".fav-btn");
@@ -535,6 +539,7 @@ document.addEventListener("click", async (e) => {
   if (flower) flower.is_fav = data.saved ? 1 : 0;
 
   buildFilters();
+    
   render();
 });
 
