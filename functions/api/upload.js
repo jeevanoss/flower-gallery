@@ -2,7 +2,8 @@
 // POST /api/upload  (multipart/form-data)
 //   fields: image (File), name, location, date
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, ctx }) {
+
   const uid = request.headers.get("cf-access-authenticated-user-email") || "jeevan";
   
   let formData;
@@ -40,8 +41,12 @@ export async function onRequestPost({ request, env }) {
   ).bind(id, name, location, date, imageUrl, uid).run();
 
   // Trigger AI tagging in background (non-blocking)
-  tagFlower(id, imageUrl, env);
-
+  const taggingPromise = tagFlower(id, imageUrl, env);
+  if (ctx && ctx.waitUntil) {
+    ctx.waitUntil(taggingPromise);
+  } else {
+    await taggingPromise;
+  }
   return Response.json({
     id,
     imageUrl,
