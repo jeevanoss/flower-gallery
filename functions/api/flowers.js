@@ -6,7 +6,7 @@
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const id  = url.searchParams.get("id");
-  const uid = request.headers.get("cf-access-authenticated-user-email") || "guest";
+  const uid = request.headers.get("cf-access-authenticated-user-email") || "jeevan";
 
   if (id) {
     const row = await env.DB.prepare(
@@ -27,7 +27,7 @@ export async function onRequestGet({ request, env }) {
 
 export async function onRequestPost({ request, env }) {
   const url  = new URL(request.url);
-  const uid  = request.headers.get("cf-access-authenticated-user-email") || "guest";
+  const uid  = request.headers.get("cf-access-authenticated-user-email") || "jeevan";
 
   if (url.pathname.endsWith("/fav")) {
     const { flower_id } = await request.json();
