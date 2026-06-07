@@ -10,14 +10,14 @@ export async function onRequestGet({ request, env }) {
 
   if (id) {
     const row = await env.DB.prepare(
-      "SELECT f.*, (SELECT 1 FROM favorites WHERE user_id=? AND flower_id=f.id) AS is_fav FROM flowers f WHERE f.id=?"
+      "SELECT f.*, (SELECT COUNT(*) FROM favorites WHERE user_id=? AND flower_id=f.id) AS is_fav FROM flowers f WHERE f.id=?"
     ).bind(uid, id).first();
     return Response.json(row || {}, corsHeaders());
   }
 
   const { results } = await env.DB.prepare(
     `SELECT f.*,
-      (SELECT 1 FROM favorites WHERE user_id=? AND flower_id=f.id) AS is_fav
+      (SELECT COUNT(*) FROM favorites WHERE user_id=? AND flower_id=f.id) AS is_fav
      FROM flowers f
      ORDER BY f.date DESC`
   ).bind(uid).all();
